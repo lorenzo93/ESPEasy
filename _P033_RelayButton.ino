@@ -1,150 +1,62 @@
 //#######################################################################################################
-//#################################### Plugin 001: Input Switch #########################################
+//#################################### Plugin 033: Relay with button/switch #############################
 //#######################################################################################################
 
-#define PLUGIN_001
-#define PLUGIN_ID_001         1
-#define PLUGIN_NAME_001       "Switch input"
-#define PLUGIN_VALUENAME1_001 "Switch"
+#define PLUGIN_033
+#define PLUGIN_ID_033         33
+#define PLUGIN_NAME_033       "Relay with Button"
+#define PLUGIN_VALUENAME1_033 "Relaybutton"
 
-boolean Plugin_001(byte function, struct EventStruct *event, String& string)
+boolean Plugin_033(byte function, struct EventStruct *event, String& string)
 {
+  /* The first GPIO is used for connecting the Relay
+  The second GPIO is used for connecting the Button or Switch*/
+
   boolean success = false;
   static byte switchstate[TASKS_MAX];
-  static byte outputstate[TASKS_MAX];
 
   switch (function)
   {
-    case PLUGIN_DEVICE_ADD:
+    case PLUGIN_DEVICE_ADD: // Declaration of possible settings
       {
-        Device[++deviceCount].Number = PLUGIN_ID_001;
-        Device[deviceCount].Type = DEVICE_TYPE_SINGLE;
-        Device[deviceCount].VType = SENSOR_TYPE_SWITCH;
-        Device[deviceCount].Ports = 0;
-        Device[deviceCount].PullUpOption = true;
-        Device[deviceCount].InverseLogicOption = true;
-        Device[deviceCount].FormulaOption = false;
-        Device[deviceCount].ValueCount = 1;
-        Device[deviceCount].SendDataOption = true;
-        Device[deviceCount].TimerOption = true;
-        Device[deviceCount].TimerOptional = true;
-        Device[deviceCount].GlobalSyncOption = true;
+        Device[++deviceCount].Number = PLUGIN_ID_033; //Specify the plugin ID
+        Device[deviceCount].Type = DEVICE_TYPE_DUAL; //Can be Single or Dual, means the number of GPIO used
+        Device[deviceCount].VType = SENSOR_TYPE_SWITCH; //Sensor type in Domoticz or other domotic system
+        Device[deviceCount].Ports = 0; //I don't know
+        Device[deviceCount].PullUpOption = false; // Option for PullUP
+        Device[deviceCount].InverseLogicOption = false; // Option to inverse the working logic
+        Device[deviceCount].FormulaOption = false; // Option to let user specify a formula
+        Device[deviceCount].ValueCount = 1; // I don't know
+        Device[deviceCount].SendDataOption = true; // Option to let user choose if send data or work locally
+        Device[deviceCount].TimerOption = false; // Option to let user set a delay
+        Device[deviceCount].GlobalSyncOption = true; // I don't know
         break;
       }
 
-    case PLUGIN_GET_DEVICENAME:
+    case PLUGIN_GET_DEVICENAME: // Default function to get plugin name
       {
-        string = F(PLUGIN_NAME_001);
+        string = F(PLUGIN_NAME_033);
         break;
       }
 
-    case PLUGIN_GET_DEVICEVALUENAMES:
+    case PLUGIN_GET_DEVICEVALUENAMES: // Default function to get plugin value names
       {
-        strcpy_P(ExtraTaskSettings.TaskDeviceValueNames[0], PSTR(PLUGIN_VALUENAME1_001));
+        strcpy_P(ExtraTaskSettings.TaskDeviceValueNames[0], PSTR(PLUGIN_VALUENAME1_033));
         break;
       }
 
-    case PLUGIN_WEBFORM_LOAD:
+    case PLUGIN_INIT: // Function runned at boot time or during configuration to inizialize plugin
       {
-        byte choice = Settings.TaskDevicePluginConfig[event->TaskIndex][0];
-        String options[2];
-        options[0] = F("Switch");
-        options[1] = F("Dimmer");
-        int optionValues[2];
-        optionValues[0] = 1;
-        optionValues[1] = 2;
-        string += F("<TR><TD>Switch Type:<TD><select name='plugin_001_type'>");
-        for (byte x = 0; x < 2; x++)
-        {
-          string += F("<option value='");
-          string += optionValues[x];
-          string += "'";
-          if (choice == optionValues[x])
-            string += F(" selected");
-          string += ">";
-          string += options[x];
-          string += F("</option>");
-        }
-        string += F("</select>");
-
-        if (Settings.TaskDevicePluginConfig[event->TaskIndex][0] == 2)
-        {
-          char tmpString[128];
-          sprintf_P(tmpString, PSTR("<TR><TD>Dim value:<TD><input type='text' name='plugin_001_dimvalue' value='%u'>"), Settings.TaskDevicePluginConfig[event->TaskIndex][1]);
-          string += tmpString;
-        }
-
-        choice = Settings.TaskDevicePluginConfig[event->TaskIndex][2];
-        String buttonOptions[4];
-        buttonOptions[0] = F("Normal Switch");
-        buttonOptions[1] = F("Push Button Active Low");
-        buttonOptions[2] = F("Push Button Active High");
-        buttonOptions[3] = F("Follow Switch");
-        int buttonOptionValues[4];
-        buttonOptionValues[0] = 0;
-        buttonOptionValues[1] = 1;
-        buttonOptionValues[2] = 2;
-        buttonOptionValues[3] = 3;
-        string += F("<TR><TD>Switch Button Type:<TD><select name='plugin_001_button'>");
-        for (byte x = 0; x < 4; x++)
-        {
-          string += F("<option value='");
-          string += buttonOptionValues[x];
-          string += "'";
-          if (choice == buttonOptionValues[x])
-            string += F(" selected");
-          string += ">";
-          string += buttonOptions[x];
-          string += F("</option>");
-        }
-        string += F("</select>");
-
-        string += F("<TR><TD>Send Boot state:<TD>");
-        if (Settings.TaskDevicePluginConfig[event->TaskIndex][3])
-          string += F("<input type=checkbox name=plugin_001_boot checked>");
-        else
-          string += F("<input type=checkbox name=plugin_001_boot>");
-
-        success = true;
-        break;
-      }
-
-    case PLUGIN_WEBFORM_SAVE:
-      {
-        String plugin1 = WebServer.arg("plugin_001_type");
-        Settings.TaskDevicePluginConfig[event->TaskIndex][0] = plugin1.toInt();
-        if (Settings.TaskDevicePluginConfig[event->TaskIndex][0] == 2)
-        {
-          String plugin2 = WebServer.arg("plugin_001_dimvalue");
-          Settings.TaskDevicePluginConfig[event->TaskIndex][1] = plugin2.toInt();
-        }
-        String plugin3 = WebServer.arg("plugin_001_button");
-        Settings.TaskDevicePluginConfig[event->TaskIndex][2] = plugin3.toInt();
-
-        String plugin4 = WebServer.arg("plugin_001_boot");
-        Settings.TaskDevicePluginConfig[event->TaskIndex][3] = (plugin4 == "on");
-
-        success = true;
-        break;
-      }
-
-    case PLUGIN_INIT:
-      {
-        if (Settings.TaskDevicePin1PullUp[event->TaskIndex])
-          pinMode(Settings.TaskDevicePin1[event->TaskIndex], INPUT_PULLUP);
-        else
-          pinMode(Settings.TaskDevicePin1[event->TaskIndex], INPUT);
-
-        setPinState(PLUGIN_ID_001, Settings.TaskDevicePin1[event->TaskIndex], PIN_MODE_INPUT, 0);
+        pinMode(Settings.TaskDevicePin1[event->TaskIndex], OUTPUT); // Setting the relay pin to output
+        pinMode(Settings.TaskDevicePin2[event->TaskIndex], INPUT); // Setting the button/switch pin to input
+        setPinState(PLUGIN_ID_001, Settings.TaskDevicePin2[event->TaskIndex], PIN_MODE_INPUT, 0);
 
         switchstate[event->TaskIndex] = digitalRead(Settings.TaskDevicePin1[event->TaskIndex]);
-        outputstate[event->TaskIndex] = switchstate[event->TaskIndex];
         
         // if boot state must be send, inverse default state
         if (Settings.TaskDevicePluginConfig[event->TaskIndex][3])
         {
           switchstate[event->TaskIndex] = !switchstate[event->TaskIndex];
-          outputstate[event->TaskIndex] = !outputstate[event->TaskIndex];
         }
         success = true;
         break;
@@ -152,58 +64,21 @@ boolean Plugin_001(byte function, struct EventStruct *event, String& string)
 
     case PLUGIN_TEN_PER_SECOND: //Is this function runned 10 times per second?
       {
-        byte state = digitalRead(Settings.TaskDevicePin1[event->TaskIndex]); //Leggo il GPIO desiderato
-        if (state != switchstate[event->TaskIndex]) //Verifico se è diverso dall'ultima lettura altrimenti vado diretto al break finale
+        byte state = digitalRead(Settings.TaskDevicePin2[event->TaskIndex]); // Read the button GPIO
+        if (state != switchstate[event->TaskIndex]) //Check if different from last read
         {
-          switchstate[event->TaskIndex] = state;
-          byte currentOutputState = outputstate[event->TaskIndex];
+          switchstate[event->TaskIndex] = state; //Save new switch state
+          byte stateSwitch = digitalRead(Settings.TaskDevicePin1[event->TaskIndex]); // Read the Relay GPIO
+          digitalWrite(Settings.TaskDevicePin1[event->TaskIndex], !stateSwitch); // Inverse the Relay
+          event->sensorType = SENSOR_TYPE_SWITCH;
+          //event->idx = 63; // How can I read this from the web form?
+          UserVar[event->BaseVarIndex] = !stateSwitch;
+          success=CPlugin_001(CPLUGIN_PROTOCOL_SEND, event, dummyString);
 
-          if (Settings.TaskDevicePluginConfig[event->TaskIndex][2] == 0) //normal switch
-            outputstate[event->TaskIndex] = state;
-          else
-          {
-            if (Settings.TaskDevicePluginConfig[event->TaskIndex][2] == 1)  // active low push button
-            {
-              if (state == 0)
-                outputstate[event->TaskIndex] = !outputstate[event->TaskIndex];
-            } else {
-              if (Settings.TaskDevicePluginConfig[event->TaskIndex][2] == 2)  // active high push button
-              {
-                if (state == 1)
-                  outputstate[event->TaskIndex] = !outputstate[event->TaskIndex];
-              }
-              else //MY addon!
-              {
-                byte stateSwitch = digitalRead(13);
-                digitalWrite(13, !stateSwitch);
-                //event->sensorType = USER_VARIABLE;
-                event->sensorType = SENSOR_TYPE_SWITCH;
-                event->idx = 63;
-                UserVar[event->BaseVarIndex] = stateSwitch;
-                success=CPlugin_001(CPLUGIN_PROTOCOL_SEND, event, dummyString);
-                break;
-              } //END my addon
-            }
-          }
-
-          // send if output needs to be changed
-          if (currentOutputState != outputstate[event->TaskIndex])
-          {
-            byte sendState = outputstate[event->TaskIndex];
-            if (Settings.TaskDevicePin1Inversed[event->TaskIndex])
-              sendState = !outputstate[event->TaskIndex];
-            UserVar[event->BaseVarIndex] = sendState;
-            event->sensorType = SENSOR_TYPE_SWITCH;
-            if ((sendState == 1) && (Settings.TaskDevicePluginConfig[event->TaskIndex][0] == 2))
-            {
-              event->sensorType = SENSOR_TYPE_DIMMER;
-              UserVar[event->BaseVarIndex] = Settings.TaskDevicePluginConfig[event->TaskIndex][1];
-            }
-            String log = F("SW   : State ");
-            log += sendState;
-            addLog(LOG_LEVEL_INFO, log);
-            sendData(event);
-          }
+          String log = F("R -> SW   : State ");
+          log += !stateSwitch;
+          addLog(LOG_LEVEL_INFO, log);
+          //sendData(event);
         }
         success = true;
         break;
@@ -213,142 +88,10 @@ boolean Plugin_001(byte function, struct EventStruct *event, String& string)
       {
         // We do not actually read the pin state as this is already done 10x/second
         // Instead we just send the last known state stored in Uservar
-        String log = F("SW   : State ");
+        String log = F("R Read -> SW   : State ");
         log += UserVar[event->BaseVarIndex];
         addLog(LOG_LEVEL_INFO, log);
         success = true;
-        break;
-      }
-
-    case PLUGIN_WRITE:
-      {
-        String log = "";
-        String command = parseString(string, 1);
-
-        if (command == F("gpio"))
-        {
-          success = true;
-          if (event->Par1 >= 0 && event->Par1 <= 16)
-          {
-            pinMode(event->Par1, OUTPUT);
-            digitalWrite(event->Par1, event->Par2);
-            setPinState(PLUGIN_ID_001, event->Par1, PIN_MODE_OUTPUT, event->Par2);
-            log = String(F("SW   : GPIO ")) + String(event->Par1) + String(F(" Set to ")) + String(event->Par2);
-            addLog(LOG_LEVEL_INFO, log);
-            SendStatus(event->Source, getPinStateJSON(SEARCH_PIN_STATE, PLUGIN_ID_001, event->Par1, log, 0));
-          }
-        }
-
-        if (command == F("pwm"))
-        {
-          success = true;
-          if (event->Par1 >= 0 && event->Par1 <= 16)
-          {
-            pinMode(event->Par1, OUTPUT);
-            
-            if(event->Par3 != NULL)
-            {
-              byte prev_mode;
-              uint16_t prev_value;            
-              getPinState(PLUGIN_ID_001, event->Par1, &prev_mode, &prev_value);
-              if(prev_mode != PIN_MODE_PWM)
-                prev_value = 0;
-
-              int32_t step_value = ((event->Par2 - prev_value) << 12) / event->Par3;
-              int32_t curr_value = prev_value << 12;
-              int16_t new_value;
-              int i = event->Par3;
-              while(i--){
-                curr_value += step_value;
-                new_value = (uint16_t)(curr_value >> 12);
-                analogWrite(event->Par1, new_value);
-                delay(1);
-              }
-            }
-            
-            analogWrite(event->Par1, event->Par2);
-            setPinState(PLUGIN_ID_001, event->Par1, PIN_MODE_PWM, event->Par2);
-            log = String(F("SW   : GPIO ")) + String(event->Par1) + String(F(" Set PWM to ")) + String(event->Par2);
-            addLog(LOG_LEVEL_INFO, log);
-            SendStatus(event->Source, getPinStateJSON(SEARCH_PIN_STATE, PLUGIN_ID_001, event->Par1, log, 0));
-          }
-        }
-
-        if (command == F("pulse"))
-        {
-          success = true;
-          if (event->Par1 >= 0 && event->Par1 <= 16)
-          {
-            pinMode(event->Par1, OUTPUT);
-            digitalWrite(event->Par1, event->Par2);
-            delay(event->Par3);
-            digitalWrite(event->Par1, !event->Par2);
-            setPinState(PLUGIN_ID_001, event->Par1, PIN_MODE_OUTPUT, event->Par2);
-            log = String(F("SW   : GPIO ")) + String(event->Par1) + String(F(" Pulsed for ")) + String(event->Par3) + String(F(" mS"));
-            addLog(LOG_LEVEL_INFO, log);
-            SendStatus(event->Source, getPinStateJSON(SEARCH_PIN_STATE, PLUGIN_ID_001, event->Par1, log, 0));
-          }
-        }
-
-        if (command == F("longpulse"))
-        {
-          success = true;
-          if (event->Par1 >= 0 && event->Par1 <= 16)
-          {
-            pinMode(event->Par1, OUTPUT);
-            digitalWrite(event->Par1, event->Par2);
-            setPinState(PLUGIN_ID_001, event->Par1, PIN_MODE_OUTPUT, event->Par2);
-            setSystemTimer(event->Par3 * 1000, PLUGIN_ID_001, event->Par1, !event->Par2, 0);
-            log = String(F("SW   : GPIO ")) + String(event->Par1) + String(F(" Pulse set for ")) + String(event->Par3) + String(F(" S"));
-            addLog(LOG_LEVEL_INFO, log);
-            SendStatus(event->Source, getPinStateJSON(SEARCH_PIN_STATE, PLUGIN_ID_001, event->Par1, log, 0));
-          }
-        }
-
-        if (command == F("servo"))
-        {
-          success = true;
-          if (event->Par1 >= 0 && event->Par1 <= 2)
-            switch (event->Par1)
-            {
-              case 1:
-                myservo1.attach(event->Par2);
-                myservo1.write(event->Par3);
-                break;
-              case 2:
-                myservo2.attach(event->Par2);
-                myservo2.write(event->Par3);
-                break;
-            }
-          setPinState(PLUGIN_ID_001, event->Par2, PIN_MODE_SERVO, event->Par3);
-          log = String(F("SW   : GPIO ")) + String(event->Par2) + String(F(" Servo set to ")) + String(event->Par3);
-          addLog(LOG_LEVEL_INFO, log);
-          SendStatus(event->Source, getPinStateJSON(SEARCH_PIN_STATE, PLUGIN_ID_001, event->Par2, log, 0));
-        }
-
-        if (command == F("status"))
-        {
-          if (parseString(string, 2) == F("gpio"))
-          {
-            success = true;
-            SendStatus(event->Source, getPinStateJSON(SEARCH_PIN_STATE, PLUGIN_ID_001, event->Par2, dummyString, 0));
-          }
-        }
-
-        if (command == F("inputswitchstate"))
-        {
-          success = true;
-          UserVar[event->Par1 * VARS_PER_TASK] = event->Par2;
-          outputstate[event->Par1] = event->Par2;
-        }
-
-        break;
-      }
-
-    case PLUGIN_TIMER_IN:
-      {
-        digitalWrite(event->Par1, event->Par2);
-        setPinState(PLUGIN_ID_001, event->Par1, PIN_MODE_OUTPUT, event->Par2);
         break;
       }
   }
