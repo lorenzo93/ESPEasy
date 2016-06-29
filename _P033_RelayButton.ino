@@ -23,7 +23,7 @@ boolean Plugin_033(byte function, struct EventStruct *event, String& string)
         Device[deviceCount].Type = DEVICE_TYPE_DUAL; //Can be Single or Dual, means the number of GPIO used
         Device[deviceCount].VType = SENSOR_TYPE_SWITCH; //Sensor type in Domoticz or other domotic system
         Device[deviceCount].Ports = 0; //I don't know
-        Device[deviceCount].PullUpOption = false; // Option for PullUP
+        Device[deviceCount].PullUpOption = true; // Option for PullUP
         Device[deviceCount].InverseLogicOption = false; // Option to inverse the working logic
         Device[deviceCount].FormulaOption = false; // Option to let user specify a formula
         Device[deviceCount].ValueCount = 1; // I don't know
@@ -48,8 +48,14 @@ boolean Plugin_033(byte function, struct EventStruct *event, String& string)
     case PLUGIN_INIT: // Function runned at boot time or during configuration to inizialize plugin
       {
         pinMode(Settings.TaskDevicePin1[event->TaskIndex], OUTPUT); // Setting the relay pin to output
-        pinMode(Settings.TaskDevicePin2[event->TaskIndex], INPUT); // Setting the button/switch pin to input
-        setPinState(PLUGIN_ID_001, Settings.TaskDevicePin2[event->TaskIndex], PIN_MODE_INPUT, 0);
+        setPinState(PLUGIN_ID_033, Settings.TaskDevicePin1[event->TaskIndex], PIN_MODE_OUTPUT, 1);
+
+        if (Settings.TaskDevicePin1PullUp[event->TaskIndex]) // Setting the button/switch pin to input
+          pinMode(Settings.TaskDevicePin2[event->TaskIndex], INPUT_PULLUP);
+        else
+          pinMode(Settings.TaskDevicePin2[event->TaskIndex], INPUT);
+
+        setPinState(PLUGIN_ID_033, Settings.TaskDevicePin2[event->TaskIndex], PIN_MODE_INPUT, 0);
 
         switchstate[event->TaskIndex] = digitalRead(Settings.TaskDevicePin1[event->TaskIndex]);
         
@@ -65,20 +71,19 @@ boolean Plugin_033(byte function, struct EventStruct *event, String& string)
     case PLUGIN_TEN_PER_SECOND: //Is this function runned 10 times per second?
       {
         byte state = digitalRead(Settings.TaskDevicePin2[event->TaskIndex]); // Read the button GPIO
+
         if (state != switchstate[event->TaskIndex]) //Check if different from last read
         {
           switchstate[event->TaskIndex] = state; //Save new switch state
           byte stateSwitch = digitalRead(Settings.TaskDevicePin1[event->TaskIndex]); // Read the Relay GPIO
           digitalWrite(Settings.TaskDevicePin1[event->TaskIndex], !stateSwitch); // Inverse the Relay
           event->sensorType = SENSOR_TYPE_SWITCH;
-          //event->idx = 63; // How can I read this from the web form?
-          UserVar[event->BaseVarIndex] = !stateSwitch;
-          success=CPlugin_001(CPLUGIN_PROTOCOL_SEND, event, dummyString);
+          UserVar[event->BaseVarIndex] = stateSwitch;
 
-          String log = F("R -> SW   : State ");
+          String log = F("Changing state, pushing: State ");
           log += !stateSwitch;
           addLog(LOG_LEVEL_INFO, log);
-          //sendData(event);
+          sendData(event);
         }
         success = true;
         break;
@@ -88,7 +93,7 @@ boolean Plugin_033(byte function, struct EventStruct *event, String& string)
       {
         // We do not actually read the pin state as this is already done 10x/second
         // Instead we just send the last known state stored in Uservar
-        String log = F("R Read -> SW   : State ");
+        String log = F("SW   : State ");
         log += UserVar[event->BaseVarIndex];
         addLog(LOG_LEVEL_INFO, log);
         success = true;
